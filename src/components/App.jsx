@@ -23,16 +23,29 @@ export const App = () => {
       window.removeEventListener('keydown', onPressEsc);
     };
   }, [isModal]);
-
+  
   useEffect(() => {
     if (imageName === '') return;
     setIsLoading(true);
+    setError(false);
     try {
       fetch(
         `https://pixabay.com/api/?q=${imageName}&page=${page}&key=${KEY}&image_type=photo&orientation=horizontal&per_page=12`
       )
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            setError(true);
+            setIsLoading(false);
+            return;
+          }
+          return res.json();
+        })
         .then(obj => {
+          if (obj.totalHits === 0) {
+            setError(true);
+            setIsLoading(false);
+            return;
+          }
           if (arrImage.length > 0) {
             setIsLoading(false);
             setArrImage(prevState => {
@@ -44,23 +57,27 @@ export const App = () => {
                   return null;
                 }
               });
+
               if (bool) {
                 return [...prevState, ...obj.hits];
               } else {
                 return prevState;
               }
             });
+
           } else {
             setPage(1);
             setArrImage(obj.hits);
             setIsLoading(false);
-            // setError(true);
           }
         });
-    } catch (error) {
+    } catch (err) {
       setError(true);
+      setIsLoading(false);
     } finally {
       // setIsLoading(false);
+      // console.log('finally')
+      // setError(false);
     }
   }, [imageName, page, arrImage]);
 
@@ -111,11 +128,8 @@ export const App = () => {
     >
       <SearchBar
         onFormSubmit={handleFormSubmit}
-        // setImageName={setImageName}
-        // imageName={imageName}
-        // setArrImage={setArrImage}
       />
-      {error && <p>Error download, try again</p>}
+      {error && <p>Upload error or missing data on request, please try again</p>}
       {!error && (
         <ImageGallery arrImage={arrImage} onClickImage={onClickImage} />
       )}
